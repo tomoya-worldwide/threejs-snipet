@@ -71,3 +71,18 @@ vite.config.ts
 
 ### 007 Instanced Benchmark 
 ![007](./src/demos/007_instanced_benchmark/demo.gif)
+
+### 008 GLTF Loader 
+![007](./src/demos/008_gltf_loader/demo.gif)
+
+
+
+
+
+
+---
+
+## Assets & Thanks
+
+All demo assets — models, HDRIs, textures, etc. — are taken from libraries that release their work under **CC0 / Public-Domain** terms.  
+Attribution isn’t legally required, but huge thanks to every creator and organization who shares their assets freely. Your generosity makes open-source graphics possible! 🙏
