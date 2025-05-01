@@ -65,3 +65,6 @@ vite.config.ts
 
 ### 005 Camera & Renderer  
 ![005](./src/demos/005_camera_renderer/demo.gif)
+
+### 006 Envmap variations 
+![006](./src/demos/006_envmap_variations/demo.gif)
