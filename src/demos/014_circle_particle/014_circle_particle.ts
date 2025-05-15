@@ -7,7 +7,11 @@ interface CircleSettings {
   wobblePeriod: number;
   radiusVariation: number;
   wobbleAmplitude: number;
+  waveAmplitude: number;
   particlesPerCircle: number;
+  orbitSpeed: number;
+  orbitModulationAmplitude: number;
+  orbitModulationFrequency: number;
 }
 
 // ParticleData型の定義
@@ -44,8 +48,8 @@ export default function multipleWobblyCircles(container?: HTMLElement, options?:
   
   // オプションの初期化
   const mouseInteraction = options?.mouseInteraction !== undefined ? options.mouseInteraction : true;
-  const mouseForce = options?.mouseForce !== undefined ? options.mouseForce : 0.05;
-  const mouseRadius = options?.mouseRadius !== undefined ? options.mouseRadius : 2.0;
+  const mouseForce = options?.mouseForce !== undefined ? options.mouseForce : 0.2;
+  const mouseRadius = options?.mouseRadius !== undefined ? options.mouseRadius : 1.0;
   const repelMode = options?.repelMode !== undefined ? options.repelMode : true;
   const friction = options?.friction !== undefined ? options.friction : 0.98;
   const returnSpeedFactor = options?.returnSpeed !== undefined ? options.returnSpeed : 1.0;
@@ -54,19 +58,19 @@ export default function multipleWobblyCircles(container?: HTMLElement, options?:
   // 基本的な設定
   const particleCount = 3000; // パーティクル数
   const baseRadius = options?.baseRadius !== undefined ? options.baseRadius : 8; // 基本半径
-  const circleCount = options?.circleCount !== undefined ? options.circleCount : 5; // 円の数
+  const circleCount = options?.circleCount !== undefined ? options.circleCount : 3; // 円の数
   const particleSize = 0.04; // 基本パーティクルサイズ
-  const orbitSpeed = options?.orbitSpeed !== undefined ? options.orbitSpeed : 0.0004; // 軌道の速度
-  const wobbleStrength = options?.wobbleStrength !== undefined ? options.wobbleStrength : 0.008; // ブレの基本強さ - 半径が同じなので強く
+  // const wobbleStrength = options?.wobbleStrength !== undefined ? options.wobbleStrength : 0; // ブレの基本強さ 
   
-  // 互いに素の数の代わりに、明示的に5つの円の振幅と周波数を設定
+  // explicitCircleSettings に waveAmplitude, orbitSpeed, orbitModulationAmplitude, orbitModulationFrequency を追加
   const explicitCircleSettings = [
-    { wobblePeriod: 0.02, radiusVariation: 0.031, wobbleAmplitude: 1.2 }, // 円1: 速い周期、小さい振幅
-    { wobblePeriod: 0.03, radiusVariation: 0.043, wobbleAmplitude: 0.8 }, // 円2: やや速い周期、中程度の振幅
-    { wobblePeriod: 0.05, radiusVariation: 0.059, wobbleAmplitude: 1.5 }, // 円3: 中程度の周期、大きい振幅
-    { wobblePeriod: 0.07, radiusVariation: 0.067, wobbleAmplitude: 0.7 }, // 円4: やや遅い周期、小さい振幅
-    { wobblePeriod: 0.11, radiusVariation: 0.071, wobbleAmplitude: 1.0 }  // 円5: 遅い周期、中程度の振幅
+    { wobblePeriod: 0.02, radiusVariation: 3, wobbleAmplitude: 0.5, waveAmplitude: 0.8, orbitSpeed: 0.002, orbitModulationAmplitude: 0.4, orbitModulationFrequency: 1.5 },
+    { wobblePeriod: 0.03, radiusVariation: 4.5, wobbleAmplitude: 0.8, waveAmplitude: 0.4, orbitSpeed: 0.0022, orbitModulationAmplitude: 0.5, orbitModulationFrequency: 1.2 },
+    { wobblePeriod: 0.05, radiusVariation: 4.0, wobbleAmplitude: 0.8, waveAmplitude: 0.4, orbitSpeed: 0.0026, orbitModulationAmplitude: 0.6, orbitModulationFrequency: 1.8 },
+    { wobblePeriod: 0.07, radiusVariation: 0.067, wobbleAmplitude: 0.7, waveAmplitude: 0.3, orbitSpeed: 0.0035, orbitModulationAmplitude: 0.3, orbitModulationFrequency: 2.1 },
+    { wobblePeriod: 0.11, radiusVariation: 0.071, wobbleAmplitude: 1.0, waveAmplitude: 0.5, orbitSpeed: 0.004, orbitModulationAmplitude: 0.7, orbitModulationFrequency: 1.0 }
   ];
+  
   
   // 円ごとの設定を保持する配列
   const circleSettings: CircleSettings[] = [];
@@ -84,19 +88,26 @@ export default function multipleWobblyCircles(container?: HTMLElement, options?:
     const wobblePeriod = circleConfig.wobblePeriod;
     const radiusVariation = circleConfig.radiusVariation;
     const wobbleAmplitude = circleConfig.wobbleAmplitude;
-    
+    const waveAmplitude = circleConfig.waveAmplitude;
+    const orbitSpeed = circleConfig.orbitSpeed;
+    const orbitModulationAmplitude = circleConfig.orbitModulationAmplitude;
+    const orbitModulationFrequency = circleConfig.orbitModulationFrequency;
     circleSettings.push({
       radius,
       wobblePeriod,
       radiusVariation,
       wobbleAmplitude,
-      particlesPerCircle: Math.floor(particleCount / circleCount)
+      waveAmplitude,
+      particlesPerCircle: Math.floor(particleCount / circleCount),
+      orbitSpeed,
+      orbitModulationAmplitude,
+      orbitModulationFrequency
     });
   }
   
   // シーンの初期化
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xECF0F1); // アルカサイトの背景色
+  scene.background = new THREE.Color(0xECF0F1); // サイトの背景色
   
   // 初期化時にコンソールログを追加
   console.log("Initializing multiple wobbling circles demo...");
@@ -233,38 +244,38 @@ export default function multipleWobblyCircles(container?: HTMLElement, options?:
     for (let i = 0; i < particlesPerCircle; i++) {
       // パーティクルの角度をランダムに決定
       const angle = Math.random() * Math.PI * 2;
-      
+
       // 三角波パターンを生成（より不規則に）
-      const waveOffset = Math.sin(angle * settings.radiusVariation) * radius * 0.15;
+      const waveOffset = Math.sin(angle * settings.radiusVariation) * settings.waveAmplitude;
       const randomOffset = (Math.random() - 0.5) * radius * 0.05; // ランダムなノイズを追加
-      
+
       // 基本円半径 + 三角波オフセット + ランダムノイズ
       const particleRadius = radius + waveOffset + randomOffset;
-      
+
       // 位置を計算
       const x = Math.cos(angle) * particleRadius;
       const y = Math.sin(angle) * particleRadius;
       const z = (Math.random() - 0.5) * 0.05; // Z軸方向の散らばりを小さく
-      
+
       // 位置を設定
       positions[i * 3] = x;
       positions[i * 3 + 1] = y;
       positions[i * 3 + 2] = z;
-      
+
       // 初期位置を保存
       initialPositions[i * 3] = x;
       initialPositions[i * 3 + 1] = y;
       initialPositions[i * 3 + 2] = z;
-      
+
       // 軌道速度を設定（接線方向）
-      velocities[i * 3] = -y * orbitSpeed * (0.8 + Math.random() * 0.4);
-      velocities[i * 3 + 1] = x * orbitSpeed * (0.8 + Math.random() * 0.4);
+      velocities[i * 3] = -y * settings.orbitSpeed * (0.8 + Math.random() * 0.4);
+      velocities[i * 3 + 1] = x * settings.orbitSpeed * (0.8 + Math.random() * 0.4);
       velocities[i * 3 + 2] = 0;
-      
+
       // パーティクルごとにブレの係数を設定 - 各円に個別の振幅を適用
-      wobbleFactors[i] = wobbleStrength * settings.wobbleAmplitude * (0.9 + Math.random() * 0.2);
+      wobbleFactors[i] = 0 // wobbleStrength * settings.wobbleAmplitude * (0.9 + Math.random() * 0.2);
       wobbleSpeeds[i] = settings.wobblePeriod * (0.95 + Math.random() * 0.1);
-      
+
       // 角度に基づいて色を設定 - すべての円で同じ色を使用
       const color = getColorAtAngle(angle, commonColorStops);
       colors[i * 3] = color.r;
@@ -367,9 +378,12 @@ export default function multipleWobblyCircles(container?: HTMLElement, options?:
       // 中心からの距離を計算
       const distance = Math.sqrt(x * x + y * y);
       
-      // 理想的な距離からのずれを計算（元の円軌道に戻る力）
+      // 理想的な半径と角度を計算
       const idealRadius = Math.sqrt(initialX * initialX + initialY * initialY);
-      const radiusDiff = idealRadius - distance;
+      const angle = Math.atan2(y, x);
+      const modulation = Math.sin(currentTime * settings.orbitModulationFrequency + angle) * settings.orbitModulationAmplitude;
+      const targetRadius = idealRadius + modulation;
+      const radiusDiff = targetRadius - distance;
       
       // 理想的な半径に戻る力
       const returnForce = 0.015 * returnSpeedFactor;
@@ -426,8 +440,8 @@ export default function multipleWobblyCircles(container?: HTMLElement, options?:
       const speedVariation = 1.0 + (Math.sin(currentTime * 0.3 + i * 0.02) * 0.05); // ±5%の変動
       
       // 摩擦を適用
-      velocities[vIdx] = (-y * orbitSpeed * speedVariation) * friction;
-      velocities[vIdx + 1] = (x * orbitSpeed * speedVariation) * friction;
+      velocities[vIdx] = (-y * settings.orbitSpeed * speedVariation) * friction;
+      velocities[vIdx + 1] = (x * settings.orbitSpeed * speedVariation) * friction;
     }
     
     positionAttribute.needsUpdate = true;
