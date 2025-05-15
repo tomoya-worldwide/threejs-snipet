@@ -96,7 +96,7 @@ export default function multipleWobblyCircles(container?: HTMLElement, options?:
   
   // シーンの初期化
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x111111); // 暗い背景
+  scene.background = new THREE.Color(0xECF0F1); // アルカサイトの背景色
   
   // 初期化時にコンソールログを追加
   console.log("Initializing multiple wobbling circles demo...");
@@ -285,7 +285,7 @@ export default function multipleWobblyCircles(container?: HTMLElement, options?:
       transparent: true,
       opacity: 0.9,
       sizeAttenuation: true,
-      blending: THREE.AdditiveBlending,
+      blending: THREE.NormalBlending, // ← ここを変更
       depthWrite: false
     });
     
